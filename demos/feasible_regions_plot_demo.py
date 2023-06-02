@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.gridspec import GridSpec
 
-from cr_utils.plotting import plot_2d_fields, plot_feasible_region
+from cr_utils.plotting import plot_2d_fields, plot_feasible_region, plot_feasible_line
 from cr_utils.utils import get_readouts, get_r_bounds, get_affine_bounds
 
 if __name__ == '__main__':
@@ -55,17 +55,29 @@ if __name__ == '__main__':
     affine_bounds = get_affine_bounds(r_bounds)
 
     for i in range(m_reagents):
-        plot_feasible_region(K_A[i, :],
-                             affine_bounds[i, :, 0],
-                             axs[i],
-                             (log_from, log_to),
-                             color=colors[i])
+        # plot_feasible_region(K_A[i, :],
+        #                      affine_bounds[i, :, 0],
+        #                      axs[i],
+        #                      (log_from, log_to),
+        #                      color=colors[i])
+        plot_feasible_line(K_A[i, :],
+                         np.average(affine_bounds[i, :, 0]),
+                         axs[i],
+                         (log_from, log_to),
+                         color=colors[i])
         axs[i].scatter(true_conc[0], true_conc[1], color='r', marker='x')
-        plot_feasible_region(K_A[i, :],
-                             affine_bounds[i, :, 0],
+        axs[i].set_aspect(1)
+        # plot_feasible_region(K_A[i, :],
+        #                      affine_bounds[i, :, 0],
+        #                      combined_ax,
+        #                      (log_from, log_to),
+        #                      color=colors[i])
+        plot_feasible_line(K_A[i, :],
+                             np.average(affine_bounds[i, :, 0]),
                              combined_ax,
                              (log_from, log_to),
                              color=colors[i])
     combined_ax.grid()
+    combined_ax.set_aspect(1)
     fig.set_size_inches(4 * m_reagents, 9)
     plt.show()

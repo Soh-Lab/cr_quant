@@ -64,6 +64,7 @@ def plot_lower_upper_performance(lower_upper_bounds: np.ndarray,
     with np.errstate(divide='ignore', invalid='ignore'):
         confidence = np.log10(upper_bound) - np.log10(lower_bound)
     confidence[np.isinf(confidence)] = 1000  # set ridiculously high value to enable plotting
+    confidence[np.isnan(confidence)] = 1000  # set ridiculously high value to enable plotting
     im = axs[1].imshow(confidence.T, cmap='plasma', vmin=0, vmax=3)
     axs[1].set_title('Log-Confidence in Estimate')
     plt.colorbar(im, ax=axs[1], location='bottom', orientation='horizontal')
@@ -204,6 +205,37 @@ def plot_feasible_region(K_A_i: np.ndarray,
 
     ax.fill(np.concatenate([x, x[::-1]]), np.concatenate([y_top, y_btm]),
             alpha=0.5, color=color)
+
+
+def plot_feasible_line(K_A_i: np.ndarray,
+                       readout_value: float,
+                       ax: plt.Axes,
+                       t1_limits: tuple[float, float],
+                       scaling: str = 'log',
+                       color: str = 'r'):
+    """
+    Plot feasible set onto existing axis object.
+
+    2022-12-10 Linus A. Hein.
+
+    :param K_A_i: (2) i-th row of K_A matrix with two target molecules.
+    :param affine_bounds_i: (2) i-th row of affine lower/upper bounds.
+    :param ax: Axes object to plot on.
+    :param t1_limits: left and right limits for plotting. If scaling is "log", actual limits are
+        [10^t1_limits[0], 10^t1_limits[1]]
+    :param scaling: Axis scaling. Possible values: "linear", "log" (default).
+    :param color: named matplotlib color of the shape that will be filled in.
+    """
+    if scaling == 'log':
+        x = np.logspace(t1_limits[0], t1_limits[1], 1000)
+    elif scaling == 'linear':
+        x = np.linspace(t1_limits[0], t1_limits[1], 1000)
+    else:
+        raise Exception(f'scaling is {scaling}, which is not one of ["linear", "log"]')
+
+    y = (readout_value - K_A_i[0] * x) / K_A_i[1]
+
+    ax.plot(x, y, color=color)
 
 
 def plot_ellipse(center, B, ax):
