@@ -40,6 +40,49 @@ def get_readouts(K_A: np.ndarray,
     return f(K_A @ target_concs).reshape((m, *input_shape))
 
 
+def normalize_reads(reads: np.array,
+                    lower_bounds: Union[float, np.ndarray],
+                    upper_bounds: Union[float, np.ndarray]) -> np.ndarray:
+    """
+    Normalize reads to be in a range between [0;1] using given lower and upper bounds. If there is
+    an outlier, the outlier will NOT be truncated to lie within the range.
+
+    2023-06-01 Linus A. Hein.
+
+    :param reads: (m, ...) Unnormalized readouts (for example from a real-world measurement).
+    :param lower_bounds: scalar or (m, ) Lowest value we expect from the readout.
+    :param upper_bounds: scalar or (m, ) Largest value we expect from the readout.
+    :return: (m, ...) Normalized readouts (ideally in range [0;1]).
+    """
+    if isinstance(lower_bounds, np.ndarray):
+        assert lower_bounds.shape == reads.shape[0]
+    if isinstance(upper_bounds, np.ndarray):
+        assert upper_bounds.shape == reads.shape[0]
+
+    return (reads - lower_bounds) / (upper_bounds - lower_bounds)
+
+
+def denormalize_reads(reads: np.array,
+                      lower_bounds: Union[float, np.ndarray],
+                      upper_bounds: Union[float, np.ndarray]) -> np.ndarray:
+    """
+    Denormalize reads from a range between [0;1] to given lower and upper bounds.
+
+    2023-06-01 Linus A. Hein.
+
+    :param reads: (m, ...) Normalized readouts (ideally in range [0;1]).
+    :param lower_bounds: scalar or (m, ) Lowest value we expect from the readout.
+    :param upper_bounds: scalar or (m, ) Largest value we expect from the readout.
+    :return: (m, ...) Denormalized readouts that you would expect from your readout.
+    """
+    if isinstance(lower_bounds, np.ndarray):
+        assert lower_bounds.shape == reads.shape[0]
+    if isinstance(upper_bounds, np.ndarray):
+        assert upper_bounds.shape == reads.shape[0]
+
+    return reads * (upper_bounds - lower_bounds) + lower_bounds
+
+
 def get_r_bounds(readouts: np.ndarray,
                  max_abs_error: Union[float, np.ndarray],
                  max_rel_error: Union[float, np.ndarray] = 0.0) -> np.ndarray:
@@ -66,6 +109,30 @@ def get_r_bounds(readouts: np.ndarray,
 
     lower_bounds = readouts * (1 - max_rel_error) - max_abs_error
     upper_bounds = readouts * (1 + max_rel_error) + max_abs_error
+
+    return np.stack([lower_bounds, upper_bounds], axis=1)
+
+
+def get_r_bounds_measured(readouts_avg: np.ndarray,
+                          readouts_std: np.ndarray,
+                          n_std: float) -> np.ndarray:
+    """
+    Given the mean and standard deviation of readouts, returns the lower and upper bounds given by:
+        - lower bound = readout - n_std * readouts_std
+        - upper bound = readout + n_std * readouts_std
+
+    2023-06-01 Linus A. Hein.
+
+    :param readouts_avg: (m, ...) numpy array of averages of readouts.
+    :param readouts_std: (m, ...) numpy array of standard deviations of readouts.
+    :param n_std: scalar. Number of standard deviations away from the mean.
+    :return: (m, 2, ...) output[:, 0, ...] contains the lower bound, output[:, 1, ...] contains the
+        upper bound on the readout value.
+    """
+    assert readouts_avg.shape == readouts_std.shape
+
+    lower_bounds = readouts_avg - n_std * readouts_std
+    upper_bounds = readouts_avg + n_std * readouts_std
 
     return np.stack([lower_bounds, upper_bounds], axis=1)
 
