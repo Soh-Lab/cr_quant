@@ -156,7 +156,8 @@ def ellipsoid_solver(K_A: np.ndarray,
     :param affine_bounds: (m, 2) lower (index 0) and upper (index 1) bounds on the m measurements.
     :param physiological_bounds: (n, 2) lower (index 0) and upper (index 1) bounds on the n targets.
 
-    :return: (n, n + 1)
+    :return: (n, n + 1) Where first column is the centroid of the ellipsoid and the remaining
+        square matrix is the matrix describing the eccentricity of the ellipsoid.
     """
     m_reagents, n_targets = K_A.shape
     if np.all(affine_bounds[:, 1] == np.infty):  # all affinity reagents are maxed out
@@ -166,10 +167,11 @@ def ellipsoid_solver(K_A: np.ndarray,
         B = np.zeros((n_targets, n_targets))  # ellipsoid matrix has zeros everywhere
         return np.column_stack([T, B])
 
-    T = cp.Variable(n_targets)
     B = cp.Variable((n_targets, n_targets), PSD=True)
 
-    T_scaled = T  # TODO: add proper normalization
+    T_scaled = cp.Variable(n_targets)
+    corr_factor = np.mean(K_A, axis=0)
+    K_A = K_A / corr_factor[np.newaxis, :]
 
     constraints = []
     # add constraints from reagents
@@ -196,7 +198,7 @@ def ellipsoid_solver(K_A: np.ndarray,
 
     prob = cp.Problem(cp.Maximize(cp.log_det(B)), constraints)
     prob.solve()
-    return np.column_stack([T.value, B.value])
+    return np.column_stack([T_scaled.value / corr_factor, B.value / corr_factor[:, np.newaxis]])
 
 
 def apply_solver(K_A: np.ndarray,

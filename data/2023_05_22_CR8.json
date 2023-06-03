@@ -1,0 +1,26 @@
+{
+  "targets": [
+    {
+      "old_name":"kyn_uM",
+      "name":"kyn_M",
+      "display_name": "kyn (M)",
+      "factor": 1e-6
+    },
+    {
+      "old_name":"xa_uM",
+      "name":"xa_M",
+      "display_name": "xa (M)",
+      "factor": 1e-6
+    }
+  ],
+  "reagents": [
+    {
+      "name": "read_SK1",
+      "display_name": "SK1"
+    },
+    {
+      "name": "read_XA1",
+      "display_name": "XA1"
+    }
+  ]
+}

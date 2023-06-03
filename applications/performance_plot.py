@@ -3,47 +3,38 @@
 
 2022-12-10 Linus A. Hein
 """
-import numpy as np
 
+from applications.data_handling import read_data, read_metadata_json, convert_dataframe_to_numpy, \
+    convert_dataframe_to_avg_std
+from applications.fit_multi_KD import fit_multi_KD, normalize_reads
 from cr_utils.plotting import plot_lower_upper_performance
 from cr_utils.solvers import lower_upper_bounds_solver, apply_solver_parallel
-from cr_utils.utils import get_r_bounds, get_affine_bounds, \
-    get_standard_physical_bounds
-from applications.fit_multi_KD import read_data
+from cr_utils.utils import get_affine_bounds, \
+    get_standard_physical_bounds, get_r_bounds_measured
 
 if __name__ == '__main__':
-    # setting K_D values using parameters from fit_multi_KD
-    K_D = np.array([
-        [10. ** -2.856, 10. ** -3.875],
-        [10. ** -0.473, 10. ** -2.792]
-    ])
+    # load data
+    metadata = read_metadata_json('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8.json')
+    df = read_data('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8_combined_2colreads.csv',
+                   metadata)
 
+    # fit KD values
+    concs, reads = convert_dataframe_to_numpy(df[df.singleplex], metadata)
+    K_D, lower_bounds, upper_bounds, \
+        K_D_matrix_std, lower_bounds_std, upper_bounds_std = fit_multi_KD(concs, reads)
     K_A = 1.0 / K_D
 
-    df = read_data()
-    # only select cross-reactive samples
-    df = df[~df.singleplex]
-    # normalizing the SK1 reads to [0; 1] (using parameters from fit_multi_KD)
-    a, d = 1345., 7526.
-    df.read_SK1 = (df.read_SK1 - a) / (d - a)
-    # normalizing the XA1 reads to [0; 1] (using parameters from fit_multi_KD)
-    a, d = 500., 9700.
-    df.read_XA1 = (df.read_XA1 - a) / (d - a)
+    concs, read_avgs, read_stds = convert_dataframe_to_avg_std(df[~df.singleplex], metadata)
 
-    # convert everything to numpy arrays
-    xa, kyn = df.xa_M.to_numpy(), df.kyn_M.to_numpy()
-    read_SK1 = df.read_SK1.to_numpy()
-    read_XA1 = df.read_XA1.to_numpy()
-
-    # convert target concentrations into single array
-    target_concs = np.stack([kyn, xa], axis=0)
+    read_avgs = normalize_reads(read_avgs, lower_bounds, upper_bounds)
+    read_stds = normalize_reads(read_stds, lower_bounds, upper_bounds, std=True)
 
     # add the bounds zero and infinity
     phys_bounds = get_standard_physical_bounds(2)
 
     # get the bounds on the reads
-    r = np.stack([read_SK1, read_XA1], axis=0)
-    r_bounds = get_r_bounds(r, 0.05)
+
+    r_bounds = get_r_bounds_measured(read_avgs, read_stds, 3)
     affine_bounds = get_affine_bounds(r_bounds)
 
     # calculate upper and lower bounds
@@ -51,4 +42,4 @@ if __name__ == '__main__':
                                    n_cores=10)
 
     # plot the results
-    plot_lower_upper_performance(bounds, target_concs)
+    plot_lower_upper_performance(bounds, concs)
