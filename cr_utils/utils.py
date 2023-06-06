@@ -1,4 +1,6 @@
 """Collection of helper functions."""
+from __future__ import annotations
+
 from typing import Callable, Union
 
 import numpy as np
