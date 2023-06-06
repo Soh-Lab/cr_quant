@@ -5,7 +5,7 @@
 """
 
 from applications.data_handling import read_data, read_metadata_json, convert_dataframe_to_numpy, \
-    convert_dataframe_to_avg_std
+    convert_dataframe_to_avg_std, read_data_files
 from applications.fit_multi_KD import fit_multi_KD, normalize_reads
 from cr_utils.plotting import plot_lower_upper_performance
 from cr_utils.solvers import lower_upper_bounds_solver, apply_solver_parallel
@@ -13,16 +13,12 @@ from cr_utils.utils import get_affine_bounds, \
     get_standard_physical_bounds, get_r_bounds_measured
 import os
 
+
 if __name__ == '__main__':
     # load data
-    directory_name = os.path.dirname(__file__)
     meta_file_name = 'data/2023_05_22_CR8.json'
     data_file_name = 'data/2023_05_22_CR8_combined_2colreads.csv'
-    meta_data_file_location = os.path.join(directory_name, os.pardir, meta_file_name)
-    data_file_location = os.path.join(directory_name, os.pardir, data_file_name)
-
-    metadata = read_metadata_json(meta_data_file_location)
-    df = read_data(data_file_location, metadata)
+    metadata, df = read_data_files(meta_file_name, data_file_name)
 
     # fit KD values
     concs, reads = convert_dataframe_to_numpy(df[df.singleplex], metadata)

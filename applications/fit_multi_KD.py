@@ -10,7 +10,8 @@ from matplotlib import pyplot as plt
 from scipy.optimize import curve_fit
 from scipy.special import logsumexp
 
-from applications.data_handling import read_data, read_metadata_json, convert_dataframe_to_numpy
+from applications.data_handling import read_data, read_metadata_json, \
+    convert_dataframe_to_numpy, read_data_files
 
 
 def func_4PLb1_ln(T, lower, upper, *log_K_D):
@@ -134,9 +135,10 @@ def fit_multi_KD(concentrations, reads, uncertainty=False):
 
 if __name__ == '__main__':
     # load data
-    metadata = read_metadata_json('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8.json')
-    df = read_data('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8_combined_2colreads.csv',
-                   metadata)
+    meta_file_name = 'data/2023_05_22_CR8.json'
+    data_file_name = 'data/2023_05_22_CR8_combined_2colreads.csv'
+    metadata, df = read_data_files(meta_file_name, data_file_name)
+
     # only use data where only one of the target concentrations is non-zero
     criterion = df.singleplex
     view = df[criterion]

@@ -3,6 +3,8 @@
 
 2023-05-30 Linus A. Hein
 """
+import os
+
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.gridspec import GridSpec
@@ -11,13 +13,13 @@ from applications.fit_multi_KD import fit_multi_KD, normalize_reads
 from cr_utils.plotting import plot_2d_fields, plot_feasible_region, plot_feasible_line
 from cr_utils.utils import get_readouts, get_affine_bounds, get_r_bounds_measured
 from applications.data_handling import read_data, read_metadata_json, convert_dataframe_to_numpy, \
-    convert_dataframe_to_avg_std
+    convert_dataframe_to_avg_std, read_data_files
 
 if __name__ == '__main__':
     # load data
-    metadata = read_metadata_json('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8.json')
-    df = read_data('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8_combined_2colreads.csv',
-                   metadata)
+    meta_file_name = 'data/2023_05_22_CR8.json'
+    data_file_name = 'data/2023_05_22_CR8_combined_2colreads.csv'
+    metadata, df = read_data_files(meta_file_name, data_file_name)
 
     # fit KD values
     concs, reads = convert_dataframe_to_numpy(df[df.singleplex], metadata)
@@ -113,7 +115,9 @@ if __name__ == '__main__':
         combined_ax.set_aspect(1)
         fig.set_size_inches(4 * m_reagents, 9)
         # plt.show()
-        plt.savefig(
-            f'/Users/linus/workspace/cr_quant/output/{int(true_conc[0] * 1e6)}_{int(true_conc[1] * 1e6)}.png',
-            dpi=300)
+
+        directory_name = os.path.dirname(__file__)
+        fig_file_location = os.path.join(directory_name, os.pardir,
+                                         f'output/{int(true_conc[0] * 1e6)}_{int(true_conc[1] * 1e6)}.png')
+        plt.savefig(fig_file_location, dpi=300)
         plt.close(fig)

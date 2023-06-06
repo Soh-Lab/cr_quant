@@ -8,19 +8,20 @@ from matplotlib import pyplot as plt
 from matplotlib.gridspec import GridSpec
 
 from applications.data_handling import read_data, read_metadata_json, convert_dataframe_to_numpy, \
-    convert_dataframe_to_avg_std
+    convert_dataframe_to_avg_std, read_data_files
 from applications.fit_multi_KD import fit_multi_KD, normalize_reads
 from cr_utils.plotting import plot_lower_upper_performance, plot_ellipse, plot_2d_fields, \
     plot_feasible_region
 from cr_utils.solvers import apply_solver_parallel, ellipsoid_solver, apply_solver
 from cr_utils.utils import get_readouts, get_r_bounds, get_affine_bounds, \
     get_standard_physical_bounds, get_r_bounds_measured
+import os
 
 if __name__ == '__main__':
     # load data
-    metadata = read_metadata_json('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8.json')
-    df = read_data('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8_combined_2colreads.csv',
-                   metadata)
+    meta_file_name = 'data/2023_05_22_CR8.json'
+    data_file_name = 'data/2023_05_22_CR8_combined_2colreads.csv'
+    metadata, df = read_data_files(meta_file_name, data_file_name)
 
     # fit KD values
     concs, reads = convert_dataframe_to_numpy(df[df.singleplex], metadata)
@@ -94,8 +95,10 @@ if __name__ == '__main__':
         combined_ax.scatter(results[0, 0, 0], results[1, 0, 0], color='r', marker='x')
         plot_ellipse(results[:, 0, 0], results[:, 1:, 0], combined_ax)
         # plt.show()
-        plt.savefig(
-            f'/Users/linus/workspace/cr_quant/output/ellipse/{int(true_conc[0] * 1e6)}_{int(true_conc[1] * 1e6)}.png',
-            dpi=300)
+
+        directory_name = os.path.dirname(__file__)
+        fig_file_location = os.path.join(directory_name, os.pardir,
+                                         f'output/ellipse/{int(true_conc[0] * 1e6)}_{int(true_conc[1] * 1e6)}.png')
+        plt.savefig(fig_file_location, dpi=300)
         plt.close()
         # plot_lower_upper_performance(bounds, target_concs)

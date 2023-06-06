@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 import json
+import os
 
 
 def read_metadata_json(json_file):
@@ -54,6 +55,14 @@ def convert_dataframe_to_avg_std(dataframe, metadata):
 
     return concentrations.T, readout_avgs.T, readout_stds.T
 
+
+def read_data_files(meta_file_name, data_file_name):
+    directory_name = os.path.dirname(__file__)
+    meta_data_file_location = os.path.join(directory_name, os.pardir, meta_file_name)
+    data_file_location = os.path.join(directory_name, os.pardir, data_file_name)
+    metadata = read_metadata_json(meta_data_file_location)
+    df = read_data(data_file_location, metadata)
+    return metadata, df
 
 if __name__ == '__main__':
     # load data
