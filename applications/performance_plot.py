@@ -11,12 +11,21 @@ from cr_utils.plotting import plot_lower_upper_performance
 from cr_utils.solvers import lower_upper_bounds_solver, apply_solver_parallel
 from cr_utils.utils import get_affine_bounds, \
     get_standard_physical_bounds, get_r_bounds_measured
+import os
 
 if __name__ == '__main__':
     # load data
-    metadata = read_metadata_json('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8.json')
-    df = read_data('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8_combined_2colreads.csv',
-                   metadata)
+    directory_name = os.path.dirname(__file__)
+    meta_file_name = 'data/2023_05_22_CR8.json'
+    data_file_name = 'data/2023_05_22_CR8_combined_2colreads.csv'
+    meta_data_file_location = os.path.join(directory_name, os.pardir, meta_file_name)
+    data_file_location = os.path.join(directory_name, os.pardir, data_file_name)
+
+    metadata = read_metadata_json(meta_data_file_location)
+    df = read_data(data_file_location, metadata)
+    # metadata = read_metadata_json('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8.json')
+    # df = read_data('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8_combined_2colreads.csv',
+    #                metadata)
 
     # fit KD values
     concs, reads = convert_dataframe_to_numpy(df[df.singleplex], metadata)
