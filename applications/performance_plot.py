@@ -23,9 +23,6 @@ if __name__ == '__main__':
 
     metadata = read_metadata_json(meta_data_file_location)
     df = read_data(data_file_location, metadata)
-    # metadata = read_metadata_json('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8.json')
-    # df = read_data('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8_combined_2colreads.csv',
-    #                metadata)
 
     # fit KD values
     concs, reads = convert_dataframe_to_numpy(df[df.singleplex], metadata)
