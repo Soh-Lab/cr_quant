@@ -30,7 +30,7 @@ if __name__ == '__main__':
     # number of processors to use to generate the plot
     N_CORES = 10
     # set the bounds of the log-scale [10^log_from, 10^log_to]
-    log_from, log_to = -8, 0
+    log_from, log_to = -6, 0
     # set the resolution on each axis of the log-scale (reduce this number to get faster runtime)
     log_steps = 300
 
@@ -80,7 +80,7 @@ if __name__ == '__main__':
         # r_bounds = get_r_bounds(readouts, 0.05)#, max_rel_error=0.1)
 
         # calculate upper and lower bounds on the readout values (+- n * std)
-        r_bounds = get_r_bounds_measured(readouts, readout_stds, 5)
+        r_bounds = get_r_bounds_measured(readouts, readout_stds, 2.5)
         affine_bounds = get_affine_bounds(r_bounds)
 
         for i in range(m_reagents):
@@ -119,5 +119,5 @@ if __name__ == '__main__':
         directory_name = os.path.dirname(__file__)
         fig_file_location = os.path.join(directory_name, os.pardir,
                                          f'output/{int(true_conc[0] * 1e6)}_{int(true_conc[1] * 1e6)}.png')
-        plt.savefig(fig_file_location, dpi=300)
+        plt.savefig(fig_file_location, format='png', dpi=300)
         plt.close(fig)
