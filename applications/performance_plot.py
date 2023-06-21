@@ -3,7 +3,10 @@
 
 2022-12-10 Linus A. Hein
 """
+import os
+
 import numpy as np
+import pandas as pd
 
 from applications.data_handling import convert_dataframe_to_numpy, \
     convert_dataframe_to_avg_std, read_data_files
@@ -43,14 +46,27 @@ if __name__ == '__main__':
     bounds = apply_solver_parallel(K_A, affine_bounds, phys_bounds, lower_upper_bounds_solver,
                                    n_cores=10)  # (n_targets, x_solution, n_samples)
 
+    d = {}
+    for target_ind, target in enumerate(metadata['targets']):
+        d[target['name']] = []
+        d[target['name'] + '_lower'] = []
+        d[target['name'] + '_upper'] = []
+
     for sample_ind in range(concs.shape[1]):
         sample_concs = concs[:, sample_ind]
         print('-' * 30)
         for target_ind, target in enumerate(metadata['targets']):
+            d[target['name']].append(sample_concs[target_ind])
+            d[target['name'] + '_lower'].append(bounds[target_ind, 0, sample_ind])
+            d[target['name'] + '_upper'].append(bounds[target_ind, 1, sample_ind])
             print(
                 f'{target["display_name"]}: [{np.log10(bounds[target_ind, 0, sample_ind]):.2f}; '
                 f'{np.log10(bounds[target_ind, 1, sample_ind]):.2f}]'
                 f'\t true: {np.log10(sample_concs[target_ind]):.2f}')
-
+    df = pd.DataFrame(data=d)
+    directory_name = os.path.dirname(__file__)
+    csv_file_location = os.path.join(directory_name, os.pardir,
+                                     f'output/bounds.csv')
+    df.to_csv(csv_file_location, index=False)
     # plot the results
     plot_lower_upper_performance(bounds, concs)
