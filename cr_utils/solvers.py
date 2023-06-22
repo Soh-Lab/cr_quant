@@ -66,11 +66,11 @@ def lower_upper_bounds_solver(K_A: np.ndarray,
         output = np.zeros((n_targets, 2))
         output[:, 1] = np.infty
         return output
-    T = cp.Variable(n_targets)
 
     # normalize T vector
-    corr_factor = np.max(K_A, axis=0)
-    T_scaled = T / corr_factor
+    corr_factor = np.mean(K_A, axis=0)
+    T_scaled = cp.Variable(n_targets)
+    K_A = K_A / corr_factor[np.newaxis, :]
 
     constraints = _generate_LP_constraints(K_A, affine_bounds, physiological_bounds, T_scaled)
 
@@ -78,13 +78,13 @@ def lower_upper_bounds_solver(K_A: np.ndarray,
     T_bounds = np.zeros((n_targets, 2))
     for k in range(n_targets):
         # lower bound
-        prob = cp.Problem(cp.Minimize(T[k]), constraints)
+        prob = cp.Problem(cp.Minimize(T_scaled[k]), constraints)
         prob.solve()
-        T_bounds[k, 0] = T[k].value
+        T_bounds[k, 0] = T_scaled[k].value
         # upper bound
-        prob = cp.Problem(cp.Maximize(T[k]), constraints)
+        prob = cp.Problem(cp.Maximize(T_scaled[k]), constraints)
         prob.solve()
-        T_bounds[k, 1] = T[k].value
+        T_bounds[k, 1] = T_scaled[k].value
 
     return T_bounds / corr_factor[:, np.newaxis]
 
