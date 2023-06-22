@@ -76,11 +76,16 @@ def plot_full_grid(concs, read_avgs, read_stds):
     fig.set_size_inches(len(grid_coor1) * 1.75, len(grid_coor0) * 1.75)
     plt.show()
 
+def save_figure(name):
+    directory_name = os.path.dirname(__file__)
+    fig_file_location = os.path.join(directory_name, os.pardir,
+                                     f'output/{name}.svg')
+    plt.savefig(fig_file_location, format='svg', dpi=300)
 
-def plot_extremes(concs, read_avgs, read_stds):
+def plot_extremes(concs, read_avgs, read_stds, save_fig=False):
     summed = concs[0] + concs[1]
     diffed = concs[0] - concs[1]
-    fig, axs = plt.subplots(nrows=2, ncols=2)
+    fig, axs = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=True)
     axs = axs.flatten()
     inds = [np.argmin(diffed), np.argmax(summed), np.argmin(summed), np.argmax(diffed)]
 
@@ -92,16 +97,17 @@ def plot_extremes(concs, read_avgs, read_stds):
         plot_one_tile(ax, K_A, true_conc, readouts, readout_stds)
         format_axis(ax, metadata)
     fig.set_size_inches(7, 7)
-    fig.tight_layout(pad=2.0, w_pad=0.5, h_pad=0.5)
+    fig.tight_layout() #pad=2.0, w_pad=0.5, h_pad=0.5)
+    if save_fig: save_figure('extremes')
     plt.show()
 
 
-def plot_conc_range(concs, read_avgs, read_stds, target_ind, target_conc_ind):
+def plot_conc_range(concs, read_avgs, read_stds, target_ind, target_conc_ind, save_fig=False):
     target_conc = np.unique(concs[target_ind])[target_conc_ind]
     inds = np.isclose(concs[target_ind], target_conc)
     inds = np.where(inds)[0]
 
-    fig, axs = plt.subplots(nrows=1, ncols=len(inds))
+    fig, axs = plt.subplots(nrows=1, ncols=len(inds), sharex=True, sharey=True)
     axs = axs.flatten()
 
     for ind, ax in zip(inds, axs):
@@ -112,15 +118,23 @@ def plot_conc_range(concs, read_avgs, read_stds, target_ind, target_conc_ind):
         plot_one_tile(ax, K_A, true_conc, readouts, readout_stds)
         format_axis(ax, metadata)
     fig.set_size_inches(3 * len(inds), 5)
-    fig.tight_layout(pad=0.1, w_pad=0.5, h_pad=0.5)
+    fig.tight_layout() #pad=0.1, w_pad=0.5, h_pad=0.5)
+    if save_fig: save_figure('conc_range')
     plt.show()
 
-
+import matplotlib as mpl
 if __name__ == '__main__':
+    plt.rcParams.update({'font.size': 22, 'font.family':'serif',
+                         'xtick.labelsize':15, 'ytick.labelsize':15})
+
     # load data
     meta_file_name = 'data/2023_05_22_CR8.json'
-    data_file_name = 'data/2023_06_20_colreads_.csv'
+    data_file_name = 'data/2023_06_20_colreads.csv'
     metadata, df = read_data_files(meta_file_name, data_file_name)
+
+    # Remove outlier from SK1:xa highest read 1.5mM
+    # df.loc[(df.xa_M == 0.00150) & (df.singleplex), 'read_SK1'] = np.nan
+    df = df.loc[~((df.xa_M == 0.00150) & (df.singleplex))] # Also drops XA1 highest conc... but this is easy
 
     # fit KD values
     concs, reads = convert_dataframe_to_numpy(df[df.singleplex], metadata)
@@ -141,14 +155,9 @@ if __name__ == '__main__':
     read_stds = normalize_reads(read_stds, lower_bounds, upper_bounds, std=True)
 
     # plot all samples together
-    plot_full_grid(concs, read_avgs, read_stds)
+    # plot_full_grid(concs, read_avgs, read_stds)
     # plot only the extremes
-    # plot_extremes(concs, read_avgs, read_stds)
+    plot_extremes(concs, read_avgs, read_stds, save_fig=True)
     # plot only one column of the full grid (as indexed by the last two inputs)
-    # plot_conc_range(concs, read_avgs, read_stds, 0, 1)
+    plot_conc_range(concs, read_avgs, read_stds, 0, 1, save_fig=True)
 
-    # directory_name = os.path.dirname(__file__)
-    # fig_file_location = os.path.join(directory_name, os.pardir,
-    #                                  f'output2/{int(true_conc[0] * 1e6)}_{int(true_conc[1] * 1e6)}.png')
-    # plt.savefig(fig_file_location, dpi=300)
-    # plt.close(fig)
