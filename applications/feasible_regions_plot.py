@@ -17,8 +17,9 @@ from applications.data_handling import read_data, read_metadata_json, convert_da
 
 if __name__ == '__main__':
     # load data
+    # data_file_name = 'data/2023_05_22_CR8_combined_2colreads.csv'
     meta_file_name = 'data/2023_05_22_CR8.json'
-    data_file_name = 'data/2023_05_22_CR8_combined_2colreads.csv'
+    data_file_name = 'data/2023_06_20_colreads.csv'
     metadata, df = read_data_files(meta_file_name, data_file_name)
 
     # fit KD values
@@ -118,6 +119,6 @@ if __name__ == '__main__':
 
         directory_name = os.path.dirname(__file__)
         fig_file_location = os.path.join(directory_name, os.pardir,
-                                         f'output/{int(true_conc[0] * 1e6)}_{int(true_conc[1] * 1e6)}.png')
-        plt.savefig(fig_file_location, format='png', dpi=300)
+                                         f'output/{int(true_conc[0] * 1e6)}_{int(true_conc[1] * 1e6)}.svg')
+        plt.savefig(fig_file_location, format='svg', dpi=300)
         plt.close(fig)
