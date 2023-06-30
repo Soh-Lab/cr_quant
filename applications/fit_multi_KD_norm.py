@@ -10,9 +10,9 @@ from matplotlib import pyplot as plt
 from scipy.optimize import curve_fit
 from scipy.special import logsumexp
 
-from applications.data_handling import read_data, read_metadata_json, convert_dataframe_to_numpy
-
-
+from applications.data_handling import read_data, read_metadata_json, convert_dataframe_to_numpy, read_data_files
+plt.rcParams.update({'font.size': 18, 'font.family': 'serif',
+                     'xtick.labelsize': 15, 'ytick.labelsize': 15})
 def func_4PLb1_ln(T, lower, upper, *log_K_D):
     """
     Adapted 4PL function for fitting two target concentrations at the same time.
@@ -134,9 +134,15 @@ def fit_multi_KD(concentrations, reads, uncertainty=False):
 
 if __name__ == '__main__':
     # load data
-    metadata = read_metadata_json('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8.json')
-    df = read_data('/Users/linus/workspace/cr_quant/data/2023_06_20_colreads_.csv',
-                   metadata)
+    # metadata = read_metadata_json('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8.json')
+    # df = read_data('/Users/linus/workspace/cr_quant/data/2023_06_20_colreads_.csv',
+    #                metadata)
+    # load data
+    meta_file_name = 'data/2023_05_22_CR8.json'
+    data_file_name = 'data/2023_06_20_colreads.csv'
+    metadata, df = read_data_files(meta_file_name, data_file_name)
+    df = df.loc[~((df.xa_M == 0.00150) & (df.singleplex))]  # Also drops XA1 highest conc... but this is easy
+
     # only use data where only one of the target concentrations is non-zero
     criterion = df.singleplex
     view = df[criterion]
@@ -188,7 +194,13 @@ if __name__ == '__main__':
     ax.set_xlabel('Target Concentration [M]')
     ax.set_xscale('log')
     ax.set_ylabel('Normalized Reads')
-    ax.grid()
+    # ax.grid()
     plt.xlim([0.3e-8, 3e-2])
     plt.legend()
+    import os
+    directory_name = os.path.dirname(__file__)
+    fig_file_location = os.path.join(directory_name,
+                                     f'../logs/CR13/binding_curve.svg')
+    fig.tight_layout()
+    plt.savefig(fig_file_location, dpi=300, format='svg', bbox_inches='tight')
     plt.show()
