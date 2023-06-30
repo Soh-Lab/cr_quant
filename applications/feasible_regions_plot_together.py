@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 from matplotlib.gridspec import GridSpec
 
 from applications.fit_multi_KD import fit_multi_KD, normalize_reads
-from cr_utils.plotting import plot_2d_fields, plot_feasible_region, plot_feasible_line
+from cr_utils.plotting import plot_2d_fields, plot_feasible_region, plot_feasible_line, save_figure
 from cr_utils.utils import get_readouts, get_affine_bounds, get_r_bounds_measured
 from applications.data_handling import read_data, read_metadata_json, convert_dataframe_to_numpy, \
     convert_dataframe_to_avg_std, read_data_files
@@ -28,6 +28,13 @@ def plot_one_tile(ax, K_A, true_conc, readouts, readout_stds):
                              (log_from, log_to),
                              color=colors[i])
     ax.scatter(true_conc[0], true_conc[1], color='r', marker='x')
+
+def plot_one_tile_by_index(ax, ind):
+    true_conc = concs[:, ind]
+    readouts = read_avgs[:, ind:ind + 1]
+    readout_stds = read_stds[:, ind:ind + 1]
+    plot_one_tile(ax, K_A, true_conc, readouts, readout_stds)
+    format_axis(ax, metadata)
 
 
 def format_axis(ax, metadata):
@@ -75,12 +82,6 @@ def plot_full_grid(concs, read_avgs, read_stds):
 
     fig.set_size_inches(len(grid_coor1) * 1.75, len(grid_coor0) * 1.75)
     plt.show()
-
-def save_figure(name):
-    directory_name = os.path.dirname(__file__)
-    fig_file_location = os.path.join(directory_name, os.pardir,
-                                     f'output/{name}.svg')
-    plt.savefig(fig_file_location, format='svg', dpi=300)
 
 def plot_extremes(concs, read_avgs, read_stds, save_fig=False):
     summed = concs[0] + concs[1]
@@ -155,9 +156,21 @@ if __name__ == '__main__':
     read_stds = normalize_reads(read_stds, lower_bounds, upper_bounds, std=True)
 
     # plot all samples together
-    # plot_full_grid(concs, read_avgs, read_stds)
+    plot_full_grid(concs, read_avgs, read_stds)
     # plot only the extremes
     plot_extremes(concs, read_avgs, read_stds, save_fig=True)
     # plot only one column of the full grid (as indexed by the last two inputs)
     plot_conc_range(concs, read_avgs, read_stds, 0, 1, save_fig=True)
 
+    # plot and save a single tile
+
+    directory_name = os.path.dirname(__file__)
+    ind = 8
+    for ind in range(12):
+        fig, ax = plt.subplots(1, 1)
+        plot_one_tile_by_index(ax, ind=ind)
+        fig_file_location = os.path.join(directory_name,
+                                         f'../logs/CR13/plot_index_{ind}.svg')
+        fig.tight_layout()
+        plt.savefig(fig_file_location, dpi=300,format='svg',  bbox_inches='tight')
+        plt.show()
