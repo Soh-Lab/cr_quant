@@ -2,7 +2,13 @@
 from __future__ import annotations
 import numpy as np
 from matplotlib import pyplot as plt, colors
+import os
 
+def save_figure(name, filetype='svg'):
+    directory_name = os.path.dirname(__file__)
+    fig_file_location = os.path.join(directory_name, os.pardir,
+                                     f'output/{name}.{filetype}')
+    plt.savefig(fig_file_location, format=filetype, dpi=300,  bbox_inches='tight')
 
 def plot_estimate_performance(estimate: np.ndarray,
                               true_conc: np.ndarray,
@@ -121,7 +127,6 @@ def plot_2d_boundedness_results(target_concs: np.ndarray,
         axs[i].set_xlabel("$T_1$")
         axs[i].set_ylabel("$T_2$")
         axs[i].set_title(f'Target {i + 1}')
-
     fig.set_size_inches(13, 6)
     return axs
 
@@ -131,7 +136,8 @@ def plot_2d_fields(target_concs: np.ndarray,
                    field_name: str = '',
                    axs: list[plt.Axes] = None,
                    scaling: str = 'log',
-                   limits: tuple[float, float] = (0.0, 1.0)) -> list[plt.Axes]:
+                   limits: tuple[float, float] = (0.0, 1.0),
+                   colorbar_scale: float = 0.6) -> list[plt.Axes]:
     """
     Plot readout values on 2D map.
 
@@ -149,12 +155,12 @@ def plot_2d_fields(target_concs: np.ndarray,
     """
     m_reagents = fields.shape[0]
     if axs is None:
-        fig, axs = plt.subplots(1, m_reagents, sharey='all', sharex='all')
+        fig, axs = plt.subplots(1, m_reagents, sharey='all', sharex='all', layout='constrained')
     v = np.linspace(limits[0], limits[1], 7, endpoint=True)
     for i in range(m_reagents):
         im = axs[i].contourf(target_concs[0], target_concs[1], fields[i], v, extend='both',
                              cmap='viridis', vmin=limits[0], vmax=limits[1])
-        plt.colorbar(im, ax=axs[i], location='bottom', orientation='horizontal', ticks=v)
+        # plt.colorbar(im, ax=axs[i], location='bottom', orientation='horizontal', ticks=v)
         axs[i].set_xlabel('$T_1$')
         axs[i].set_ylabel('$T_2$')
         axs[i].set_title(f'{field_name} {i + 1}')
@@ -164,6 +170,7 @@ def plot_2d_fields(target_concs: np.ndarray,
         axs[i].set_xscale(scaling)
         axs[i].set_yscale(scaling)
     plt.gcf().set_size_inches(4 * m_reagents, 4.25)
+    plt.colorbar(im, orientation='vertical', ticks=v, shrink=colorbar_scale)
     # plt.gcf().tight_layout()
     return axs
 
