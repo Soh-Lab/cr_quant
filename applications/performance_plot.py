@@ -18,15 +18,25 @@ from cr_utils.utils import get_affine_bounds, \
 
 if __name__ == '__main__':
     # load data
-    meta_file_name = 'data/2023_05_22_CR8.json'
-    data_file_name = 'data/2023_06_20_colreads_.csv'
-    metadata, df = read_data_files(meta_file_name, data_file_name)
+    metadata_name = '2023_05_22_CR8.json'
+    data_name = '2023_06_20_colreads_.csv'
+
+    root_directory = os.path.join(os.path.dirname(__file__), os.pardir)
+    data_folder = os.path.join(root_directory, 'data')
+    metadata, df = read_data_files(os.path.join(data_folder, metadata_name),
+                                   os.path.join(data_folder, data_name))
 
     # fit KD values
     concs, reads = convert_dataframe_to_numpy(df[df.singleplex], metadata)
+
     K_D, lower_bounds, upper_bounds, \
         K_D_matrix_std, lower_bounds_std, upper_bounds_std = fit_multi_KD(concs, reads)
     K_A = 1.0 / K_D
+
+    # off_diag_mat = (np.ones_like(K_A) - np.diag(np.diag(np.ones_like(K_A))))
+    # diag_mat = np.ones_like(K_A) - off_diag_mat
+    # K_A = off_diag_mat * 1e-9 + np.diag(np.diag(K_A))  # get main diagonal
+    # K_A = K_A - np.diag(np.diag(K_A)) + diag_mat * 1e-9  # get off-diagonal
 
     concs, read_avgs, read_stds = convert_dataframe_to_avg_std(df[~df.singleplex], metadata)
 
@@ -64,9 +74,7 @@ if __name__ == '__main__':
                 f'{np.log10(bounds[target_ind, 1, sample_ind]):.2f}]'
                 f'\t true: {np.log10(sample_concs[target_ind]):.2f}')
     df = pd.DataFrame(data=d)
-    directory_name = os.path.dirname(__file__)
-    csv_file_location = os.path.join(directory_name, os.pardir,
-                                     f'output/bounds.csv')
-    df.to_csv(csv_file_location, index=False)
+    csv_path = os.path.join(root_directory, 'output', 'bounds.csv')
+    df.to_csv(csv_path, index=False)
     # plot the results
     plot_lower_upper_performance(bounds, concs)

@@ -3,6 +3,7 @@
 
 2023-05-30 Linus A. Hein
 """
+import os
 from typing import Union
 
 import numpy as np
@@ -10,9 +11,11 @@ from matplotlib import pyplot as plt
 from scipy.optimize import curve_fit
 from scipy.special import logsumexp
 
-from applications.data_handling import read_data, read_metadata_json, convert_dataframe_to_numpy, read_data_files
-plt.rcParams.update({'font.size': 18, 'font.family': 'serif',
-                     'xtick.labelsize': 15, 'ytick.labelsize': 15})
+from applications.data_handling import convert_dataframe_to_numpy, \
+    read_data_files
+from cr_utils.plotting import apply_paper_formatting, save_figure
+
+
 def func_4PLb1_ln(T, lower, upper, *log_K_D):
     """
     Adapted 4PL function for fitting two target concentrations at the same time.
@@ -133,22 +136,18 @@ def fit_multi_KD(concentrations, reads, uncertainty=False):
 
 
 if __name__ == '__main__':
+    apply_paper_formatting(18)
     # load data
-    # metadata = read_metadata_json('/Users/linus/workspace/cr_quant/data/2023_05_22_CR8.json')
-    # df = read_data('/Users/linus/workspace/cr_quant/data/2023_06_20_colreads_.csv',
-    #                metadata)
-    # load data
-    meta_file_name = 'data/2023_05_22_CR8.json'
-    data_file_name = 'data/2023_06_20_colreads.csv'
-    metadata, df = read_data_files(meta_file_name, data_file_name)
-    df = df.loc[~((df.xa_M == 0.00150) & (df.singleplex))]  # Also drops XA1 highest conc... but this is easy
+    metadata_name = '2023_05_22_CR8.json'
+    data_name = '2023_06_20_colreads_.csv'
 
-    # only use data where only one of the target concentrations is non-zero
-    criterion = df.singleplex
-    view = df[criterion]
+    root_directory = os.path.join(os.path.dirname(__file__), os.pardir)
+    data_folder = os.path.join(root_directory, 'data')
+    metadata, df = read_data_files(os.path.join(data_folder, metadata_name),
+                                   os.path.join(data_folder, data_name))
 
     # convert from dataframe to numpy arrays
-    concs, reads = convert_dataframe_to_numpy(view, metadata)
+    concs, reads = convert_dataframe_to_numpy(df[df.singleplex], metadata)
 
     aptamer_names = [reagent['display_name'] for reagent in metadata['reagents']]
     target_names = [target['display_name'] for target in metadata['targets']]
@@ -157,7 +156,7 @@ if __name__ == '__main__':
     K_D_matrix, lower_bounds, upper_bounds, \
         K_D_matrix_std, lower_bounds_std, upper_bounds_std = fit_multi_KD(concs, reads)
 
-    reads = (reads - lower_bounds[:,np.newaxis]) / (upper_bounds - lower_bounds)[:,np.newaxis]
+    reads = normalize_reads(reads, lower_bounds, upper_bounds)
 
     # plot the fitted curves
     fig, axs = plt.subplots(nrows=1, ncols=1,
@@ -183,7 +182,7 @@ if __name__ == '__main__':
             ax.scatter(target_concs, apt_reads, color=colors[apt_ind],
                        marker=markers[target_ind])
             x_coors = np.logspace(-9,
-                                  -1,#np.log10(np.max(target_concs)) + 1,
+                                  -1,
                                   1000)
             ax.plot(x_coors, func_4PLb1_ln(np.log(x_coors[np.newaxis, :]),
                                            0,
@@ -194,13 +193,16 @@ if __name__ == '__main__':
     ax.set_xlabel('Target Concentration [M]')
     ax.set_xscale('log')
     ax.set_ylabel('Normalized Reads')
-    # ax.grid()
+    plt.yticks([0, 0.5, 1.0])
+    x_ticks = np.logspace(-8, -2, 7)
+    x_tick_labels = ['$10^{' + f'{np.log10(x_tick):.0f}'+'}$' for x_tick in x_ticks]
+    x_tick_labels = [x_tick_label if i % 2 == 0 else '' for i, x_tick_label in enumerate(x_tick_labels)]
+    plt.xticks(x_ticks, x_tick_labels)
+
+    ax.grid()
     plt.xlim([0.3e-8, 3e-2])
     plt.legend()
-    import os
-    directory_name = os.path.dirname(__file__)
-    fig_file_location = os.path.join(directory_name,
-                                     f'../logs/CR13/binding_curve.svg')
-    fig.tight_layout()
-    plt.savefig(fig_file_location, dpi=300, format='svg', bbox_inches='tight')
+
+    fig_path = os.path.join(root_directory, 'output','binding_curve.svg')
+    save_figure(fig, fig_path)
     plt.show()

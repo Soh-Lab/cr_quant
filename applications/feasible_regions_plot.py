@@ -10,17 +10,20 @@ from matplotlib import pyplot as plt
 from matplotlib.gridspec import GridSpec
 
 from applications.fit_multi_KD import fit_multi_KD, normalize_reads
-from cr_utils.plotting import plot_2d_fields, plot_feasible_region, plot_feasible_line
+from cr_utils.plotting import plot_2d_fields, plot_feasible_region, plot_feasible_line, save_figure
 from cr_utils.utils import get_readouts, get_affine_bounds, get_r_bounds_measured
 from applications.data_handling import read_data, read_metadata_json, convert_dataframe_to_numpy, \
     convert_dataframe_to_avg_std, read_data_files
 
 if __name__ == '__main__':
     # load data
-    # data_file_name = 'data/2023_05_22_CR8_combined_2colreads.csv'
-    meta_file_name = 'data/2023_05_22_CR8.json'
-    data_file_name = 'data/2023_06_20_colreads.csv'
-    metadata, df = read_data_files(meta_file_name, data_file_name)
+    metadata_name = '2023_05_22_CR8.json'
+    data_name = '2023_06_20_colreads_.csv'
+
+    root_directory = os.path.join(os.path.dirname(__file__), os.pardir)
+    data_folder = os.path.join(root_directory, 'data')
+    metadata, df = read_data_files(os.path.join(data_folder, metadata_name),
+                                   os.path.join(data_folder, data_name))
 
     # fit KD values
     concs, reads = convert_dataframe_to_numpy(df[df.singleplex], metadata)
@@ -28,12 +31,13 @@ if __name__ == '__main__':
         K_D_matrix_std, lower_bounds_std, upper_bounds_std = fit_multi_KD(concs, reads)
     K_A = 1.0 / K_D
 
-    # number of processors to use to generate the plot
-    N_CORES = 10
     # set the bounds of the log-scale [10^log_from, 10^log_to]
     log_from, log_to = -6, 0
     # set the resolution on each axis of the log-scale (reduce this number to get faster runtime)
-    log_steps = 300
+    log_steps = 100
+    # whether to plot two rows (first row, individual aptamers, second row combined plot) or just a
+    # single combined plot
+    detailed_plots = False
 
     colors = ['r', 'orange', 'b']
 
@@ -47,22 +51,32 @@ if __name__ == '__main__':
 
         m_reagents = K_A.shape[0]
 
-        # create a 2D-log-meshgrid of target concentrations
-        A, B = np.logspace(log_from, log_to, log_steps), np.logspace(log_from, log_to, log_steps)
-        AA, BB = np.meshgrid(A, B)
-        # generate the affine bounds needed to run the solver
-        target_concs = np.stack([AA, BB], axis=0)
-        readouts = get_readouts(K_A, target_concs)
-
         fig = plt.figure(constrained_layout=True)
-        gs = GridSpec(2, m_reagents, figure=fig)
+        if detailed_plots:
+            gs = GridSpec(2, m_reagents, figure=fig)
 
-        combined_ax = fig.add_subplot(gs[1, m_reagents // 2])
-        axs = [fig.add_subplot(gs[0, i], sharex=combined_ax, sharey=combined_ax) for i in
-               range(m_reagents)]
+            combined_ax = fig.add_subplot(gs[1, m_reagents // 2])
+            axs = [fig.add_subplot(gs[0, i], sharex=combined_ax, sharey=combined_ax) for i in
+                   range(m_reagents)]
 
-        # plot binding "curves" (the heatmap in the background)
-        plot_2d_fields(target_concs, readouts, 'Affinity Reagent', axs=axs)
+            # create a 2D-log-meshgrid of target concentrations
+            A, B = np.logspace(log_from, log_to, log_steps), np.logspace(log_from, log_to,
+                                                                         log_steps)
+            AA, BB = np.meshgrid(A, B)
+            # generate the affine bounds needed to run the solver
+            target_concs = np.stack([AA, BB], axis=0)
+            readouts = get_readouts(K_A, target_concs)
+
+            # plot binding "curves" (the heatmap in the background)
+            plot_2d_fields(target_concs, readouts, 'Affinity Reagent', axs=axs)
+        else:
+            combined_ax = fig.add_subplot()
+            combined_ax.set_xscale('log')
+            combined_ax.set_yscale('log')
+            combined_ax.set_xlim(10 ** log_from, 10 ** log_to)
+            combined_ax.set_ylim(10 ** log_from, 10 ** log_to)
+        combined_ax.set_xlabel('$T_1$')
+        combined_ax.set_ylabel('$T_2$')
 
         # print mean and standard deviation of all samples
         readouts = read_avgs[:, ind:ind + 1]
@@ -81,19 +95,20 @@ if __name__ == '__main__':
         # r_bounds = get_r_bounds(readouts, 0.05)#, max_rel_error=0.1)
 
         # calculate upper and lower bounds on the readout values (+- n * std)
-        r_bounds = get_r_bounds_measured(readouts, readout_stds, 2.5)
+        r_bounds = get_r_bounds_measured(readouts, readout_stds, 2.4841)
         affine_bounds = get_affine_bounds(r_bounds)
 
         for i in range(m_reagents):
-            axs[i].scatter(true_conc[0], true_conc[1], color='r', marker='x')
-            axs[i].set_aspect(1)
+            if detailed_plots:
+                axs[i].set_aspect(1)
 
-            # plot regions
-            plot_feasible_region(K_A[i, :],
-                                 affine_bounds[i, :, 0],
-                                 axs[i],
-                                 (log_from, log_to),
-                                 color=colors[i])
+                # plot regions
+                plot_feasible_region(K_A[i, :],
+                                     affine_bounds[i, :, 0],
+                                     axs[i],
+                                     (log_from, log_to),
+                                     color=colors[i])
+                axs[i].scatter(true_conc[0], true_conc[1], color='r', marker='x')
             plot_feasible_region(K_A[i, :],
                                  affine_bounds[i, :, 0],
                                  combined_ax,
@@ -115,10 +130,9 @@ if __name__ == '__main__':
         combined_ax.scatter(true_conc[0], true_conc[1], color='r', marker='x')
         combined_ax.set_aspect(1)
         fig.set_size_inches(4 * m_reagents, 9)
-        # plt.show()
+        plt.show()
 
-        directory_name = os.path.dirname(__file__)
-        fig_file_location = os.path.join(directory_name, os.pardir,
-                                         f'output/{int(true_conc[0] * 1e6)}_{int(true_conc[1] * 1e6)}.svg')
-        plt.savefig(fig_file_location, format='svg', dpi=300)
+        fig_path = os.path.join(root_directory, 'output',
+                                         f'{int(true_conc[0] * 1e6)}_{int(true_conc[1] * 1e6)}.svg')
+        save_figure(fig, fig_path)
         plt.close(fig)

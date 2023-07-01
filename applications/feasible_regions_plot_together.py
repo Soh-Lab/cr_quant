@@ -9,11 +9,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.gridspec import GridSpec
 
-from applications.fit_multi_KD import fit_multi_KD, normalize_reads
-from cr_utils.plotting import plot_2d_fields, plot_feasible_region, plot_feasible_line, save_figure
-from cr_utils.utils import get_readouts, get_affine_bounds, get_r_bounds_measured
-from applications.data_handling import read_data, read_metadata_json, convert_dataframe_to_numpy, \
+from applications.data_handling import convert_dataframe_to_numpy, \
     convert_dataframe_to_avg_std, read_data_files
+from applications.fit_multi_KD import fit_multi_KD, normalize_reads
+from cr_utils.plotting import plot_feasible_region, save_figure, apply_paper_formatting
+from cr_utils.utils import get_affine_bounds, get_r_bounds_measured
 
 
 def plot_one_tile(ax, K_A, true_conc, readouts, readout_stds):
@@ -29,11 +29,9 @@ def plot_one_tile(ax, K_A, true_conc, readouts, readout_stds):
                              color=colors[i])
     ax.scatter(true_conc[0], true_conc[1], color='r', marker='x')
 
-def plot_one_tile_by_index(ax, ind):
-    true_conc = concs[:, ind]
-    readouts = read_avgs[:, ind:ind + 1]
-    readout_stds = read_stds[:, ind:ind + 1]
-    plot_one_tile(ax, K_A, true_conc, readouts, readout_stds)
+
+def plot_one_tile_by_index(metadata, ax, K_A, concs, read_avgs, read_stds, ind):
+    plot_one_tile(ax, K_A, concs[:, ind], read_avgs[:, ind:ind + 1], read_stds[:, ind:ind + 1])
     format_axis(ax, metadata)
 
 
@@ -55,10 +53,11 @@ def print_sample(true_conc, readouts, readout_stds):
     print(f'Log true concs: {np.log10(true_conc)}')
     for reagent_ind, reagent in enumerate(metadata['reagents']):
         print(
-            f'{reagent["display_name"]}: {readouts[reagent_ind, 0]:.4f} +- {readout_stds[reagent_ind, 0]:.4f}')
+            f'{reagent["display_name"]}: '
+            f'{readouts[reagent_ind, 0]:.4f} +- {readout_stds[reagent_ind, 0]:.4f}')
 
 
-def plot_full_grid(concs, read_avgs, read_stds):
+def plot_full_grid(metadata, concs, read_avgs, read_stds):
     grid_coor0 = {conc: ind for ind, conc in enumerate(np.unique(concs[1]))}
     grid_coor1 = {conc: ind for ind, conc in enumerate(np.unique(concs[0]))}
 
@@ -83,10 +82,11 @@ def plot_full_grid(concs, read_avgs, read_stds):
     fig.set_size_inches(len(grid_coor1) * 1.75, len(grid_coor0) * 1.75)
     plt.show()
 
-def plot_extremes(concs, read_avgs, read_stds, save_fig=False):
+
+def plot_extremes(metadata, concs, read_avgs, read_stds, save_folder=None):
     summed = concs[0] + concs[1]
     diffed = concs[0] - concs[1]
-    fig, axs = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=True)
+    fig, axs = plt.subplots(nrows=2, ncols=2, sharex='all', sharey='all')
     axs = axs.flatten()
     inds = [np.argmin(diffed), np.argmax(summed), np.argmin(summed), np.argmax(diffed)]
 
@@ -98,17 +98,19 @@ def plot_extremes(concs, read_avgs, read_stds, save_fig=False):
         plot_one_tile(ax, K_A, true_conc, readouts, readout_stds)
         format_axis(ax, metadata)
     fig.set_size_inches(7, 7)
-    fig.tight_layout() #pad=2.0, w_pad=0.5, h_pad=0.5)
-    if save_fig: save_figure('extremes')
+    fig.tight_layout()
+    if save_folder is not None:
+        save_figure(fig, os.path.join(save_folder, 'extremes.svg'))
     plt.show()
 
 
-def plot_conc_range(concs, read_avgs, read_stds, target_ind, target_conc_ind, save_fig=False):
+def plot_conc_range(metadata, concs, read_avgs, read_stds,
+                    target_ind, target_conc_ind, save_folder=None):
     target_conc = np.unique(concs[target_ind])[target_conc_ind]
     inds = np.isclose(concs[target_ind], target_conc)
     inds = np.where(inds)[0]
 
-    fig, axs = plt.subplots(nrows=1, ncols=len(inds), sharex=True, sharey=True)
+    fig, axs = plt.subplots(nrows=1, ncols=len(inds), sharex='all', sharey='all')
     axs = axs.flatten()
 
     for ind, ax in zip(inds, axs):
@@ -119,29 +121,37 @@ def plot_conc_range(concs, read_avgs, read_stds, target_ind, target_conc_ind, sa
         plot_one_tile(ax, K_A, true_conc, readouts, readout_stds)
         format_axis(ax, metadata)
     fig.set_size_inches(3 * len(inds), 5)
-    fig.tight_layout() #pad=0.1, w_pad=0.5, h_pad=0.5)
-    if save_fig: save_figure('conc_range')
+    fig.tight_layout()
+    if save_folder is not None:
+        save_figure(fig, os.path.join(save_folder, 'conc_range.svg'))
     plt.show()
 
-import matplotlib as mpl
+
 if __name__ == '__main__':
-    plt.rcParams.update({'font.size': 22, 'font.family':'serif',
-                         'xtick.labelsize':15, 'ytick.labelsize':15})
+    apply_paper_formatting(22)
 
     # load data
-    meta_file_name = 'data/2023_05_22_CR8.json'
-    data_file_name = 'data/2023_06_20_colreads.csv'
-    metadata, df = read_data_files(meta_file_name, data_file_name)
+    output_folder = 'output'
+    metadata_name = '2023_05_22_CR8.json'
+    data_name = '2023_06_20_colreads_.csv'
 
-    # Remove outlier from SK1:xa highest read 1.5mM
-    # df.loc[(df.xa_M == 0.00150) & (df.singleplex), 'read_SK1'] = np.nan
-    df = df.loc[~((df.xa_M == 0.00150) & (df.singleplex))] # Also drops XA1 highest conc... but this is easy
+    root_directory = os.path.join(os.path.dirname(__file__), os.pardir)
+    data_folder = os.path.join(root_directory, 'data')
+    output_folder = os.path.join(root_directory, output_folder)
+    metadata, df = read_data_files(os.path.join(data_folder, metadata_name),
+                                   os.path.join(data_folder, data_name))
 
     # fit KD values
     concs, reads = convert_dataframe_to_numpy(df[df.singleplex], metadata)
     K_D, lower_bounds, upper_bounds, \
         K_D_matrix_std, lower_bounds_std, upper_bounds_std = fit_multi_KD(concs, reads)
     K_A = 1.0 / K_D
+
+    # uncomment these lines to assume mono-specificity
+    # off_diag_mat = (np.ones_like(K_A) - np.diag(np.diag(np.ones_like(K_A))))
+    # diag_mat = np.ones_like(K_A) - off_diag_mat
+    # K_A = off_diag_mat * 1e-9 + np.diag(np.diag(K_A))  # get main diagonal
+    # K_A = K_A - np.diag(np.diag(K_A)) + diag_mat * 1e-9 # get off-diagonal
 
     # set the bounds of the log-scale [10^log_from, 10^log_to]
     log_from, log_to = -6, 0
@@ -156,21 +166,18 @@ if __name__ == '__main__':
     read_stds = normalize_reads(read_stds, lower_bounds, upper_bounds, std=True)
 
     # plot all samples together
-    plot_full_grid(concs, read_avgs, read_stds)
+    # plot_full_grid(metadata, concs, read_avgs, read_stds)
     # plot only the extremes
-    plot_extremes(concs, read_avgs, read_stds, save_fig=True)
+    plot_extremes(metadata, concs, read_avgs, read_stds, output_folder)
     # plot only one column of the full grid (as indexed by the last two inputs)
-    plot_conc_range(concs, read_avgs, read_stds, 0, 1, save_fig=True)
+    plot_conc_range(metadata, concs, read_avgs, read_stds, 0, 1, output_folder)
 
     # plot and save a single tile
 
-    directory_name = os.path.dirname(__file__)
-    ind = 8
-    for ind in range(12):
+    for ind in range(concs.shape[1]):
         fig, ax = plt.subplots(1, 1)
-        plot_one_tile_by_index(ax, ind=ind)
-        fig_file_location = os.path.join(directory_name,
-                                         f'../logs/CR13/plot_index_{ind}.svg')
-        fig.tight_layout()
-        plt.savefig(fig_file_location, dpi=300,format='svg',  bbox_inches='tight')
-        plt.show()
+        plot_one_tile_by_index(metadata, ax, K_A, concs, read_avgs, read_stds, ind)
+        fig_path = os.path.join(output_folder,
+                                f'/plot_index_{ind}.svg')
+        save_figure(fig, fig_path)
+        plt.close(fig)

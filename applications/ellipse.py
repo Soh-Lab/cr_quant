@@ -3,25 +3,30 @@
 
 2023-06-02 Linus A. Hein
 """
+import os
+
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.gridspec import GridSpec
 
-from applications.data_handling import read_data, read_metadata_json, convert_dataframe_to_numpy, \
+from applications.data_handling import convert_dataframe_to_numpy, \
     convert_dataframe_to_avg_std, read_data_files
 from applications.fit_multi_KD import fit_multi_KD, normalize_reads
-from cr_utils.plotting import plot_lower_upper_performance, plot_ellipse, plot_2d_fields, \
-    plot_feasible_region
-from cr_utils.solvers import apply_solver_parallel, ellipsoid_solver, apply_solver
-from cr_utils.utils import get_readouts, get_r_bounds, get_affine_bounds, \
+from cr_utils.plotting import plot_ellipse, plot_2d_fields, \
+    plot_feasible_region, save_figure
+from cr_utils.solvers import ellipsoid_solver, apply_solver
+from cr_utils.utils import get_readouts, get_affine_bounds, \
     get_standard_physical_bounds, get_r_bounds_measured
-import os
 
 if __name__ == '__main__':
     # load data
-    meta_file_name = 'data/2023_05_22_CR8.json'
-    data_file_name = 'data/2023_05_22_CR8_combined_2colreads.csv'
-    metadata, df = read_data_files(meta_file_name, data_file_name)
+    metadata_name = '2023_05_22_CR8.json'
+    data_name = '2023_06_20_colreads_.csv'
+
+    root_directory = os.path.join(os.path.dirname(__file__), os.pardir)
+    data_folder = os.path.join(root_directory, 'data')
+    metadata, df = read_data_files(os.path.join(data_folder, metadata_name),
+                                   os.path.join(data_folder, data_name))
 
     # fit KD values
     concs, reads = convert_dataframe_to_numpy(df[df.singleplex], metadata)
@@ -43,10 +48,9 @@ if __name__ == '__main__':
     colors = ['r', 'orange', 'b']
 
     for ind in range(concs.shape[1]):  # iterate over every sample
-        true_conc = concs[:, ind:ind+1]
+        true_conc = concs[:, ind:ind + 1]
 
-        ### plotting background
-
+        # plotting background
         m_reagents = K_D.shape[0]
         # create a 2D-log-meshgrid of target concentrations
         A, B = np.logspace(log_from, log_to, log_steps), np.logspace(log_from, log_to, log_steps)
@@ -86,19 +90,18 @@ if __name__ == '__main__':
         combined_ax.grid()
         fig.set_size_inches(4 * m_reagents, 9)
 
-        ### plotting ellipse
+        # plotting ellipse
         phys_bounds = get_standard_physical_bounds(2)
 
         results = apply_solver(K_A, affine_bounds, phys_bounds, ellipsoid_solver)
 
         print(f'{true_conc[0, 0]}, {true_conc[1, 0]}, {results[0, 0, 0]}, {results[1, 0, 0]}')
-        combined_ax.scatter(results[0, 0, 0], results[1, 0, 0], color='r', marker='x')
         plot_ellipse(results[:, 0, 0], results[:, 1:, 0], combined_ax)
-        # plt.show()
+        combined_ax.scatter(results[0, 0, 0], results[1, 0, 0], color='r', marker='x')
+        plt.show()
 
-        directory_name = os.path.dirname(__file__)
-        fig_file_location = os.path.join(directory_name, os.pardir,
-                                         f'output/ellipse/{int(true_conc[0] * 1e6)}_{int(true_conc[1] * 1e6)}.png')
-        plt.savefig(fig_file_location, dpi=300)
+        fig_path = os.path.join(root_directory, 'output', 'ellipse',
+                                f'{int(true_conc[0] * 1e6)}_{int(true_conc[1] * 1e6)}.png')
+        save_figure(fig, fig_path)
         plt.close()
         # plot_lower_upper_performance(bounds, target_concs)

@@ -1,14 +1,33 @@
 """Collection of plotting functions."""
 from __future__ import annotations
-import numpy as np
-from matplotlib import pyplot as plt, colors
+
 import os
 
-def save_figure(name, filetype='svg'):
-    directory_name = os.path.dirname(__file__)
-    fig_file_location = os.path.join(directory_name, os.pardir,
-                                     f'output/{name}.{filetype}')
-    plt.savefig(fig_file_location, format=filetype, dpi=300,  bbox_inches='tight')
+import numpy as np
+from matplotlib import pyplot as plt, colors
+
+
+def apply_paper_formatting(font_size):
+    """
+    Configures matplotlib to use prettier formatting settings.
+
+    :param font_size: font size to be used in all plots.
+    """
+    plt.rcParams.update({'font.size': font_size, 'font.family': 'serif',
+                         'mathtext.fontset': 'dejavuserif',
+                         'xtick.labelsize': 15, 'ytick.labelsize': 15})
+
+
+def save_figure(fig, path):
+    """
+    Saves the figure at the specified path.
+
+    :param fig: Figure to be saved.
+    :param path: Path to save the figure at.
+    """
+    filetype = os.path.splitext(path)[1].replace('.', '')
+    fig.savefig(path, format=filetype, dpi=300, bbox_inches='tight')
+
 
 def plot_estimate_performance(estimate: np.ndarray,
                               true_conc: np.ndarray,
@@ -143,14 +162,15 @@ def plot_2d_fields(target_concs: np.ndarray,
 
     2022-12-10 Linus A. Hein.
 
-    :param field_name:
     :param target_concs: (2, t2, t1) 2d grid of target concentrations (result of meshgrid).
+    :param field_name: String to be displayed on top of each axis.
     :param fields: (k, t2, t1) readouts produced by the m affinity reagents.
     :param field_name: name of the k axis in fields (Example: "Affinity Reagent").
     :param axs: (optional) List of k axes objects to plot on. Should have length of at least m.
     :param scaling: Axis scaling. Possible values: "linear", "log" (default), "symlog", "logit".
     :param limits: tuple of limits on the readout values (minimum, maximum).
         Default value (0.0, 1.0).
+    :param colorbar_scale: Scale of the color bar.
     :return: List of k Axes objects on which the binding curves were plotted.
     """
     m_reagents = fields.shape[0]
@@ -160,6 +180,8 @@ def plot_2d_fields(target_concs: np.ndarray,
     for i in range(m_reagents):
         im = axs[i].contourf(target_concs[0], target_concs[1], fields[i], v, extend='both',
                              cmap='viridis', vmin=limits[0], vmax=limits[1])
+        if i == m_reagents - 1:
+            plt.colorbar(im, orientation='vertical', ticks=v, shrink=colorbar_scale)
         # plt.colorbar(im, ax=axs[i], location='bottom', orientation='horizontal', ticks=v)
         axs[i].set_xlabel('$T_1$')
         axs[i].set_ylabel('$T_2$')
@@ -170,8 +192,6 @@ def plot_2d_fields(target_concs: np.ndarray,
         axs[i].set_xscale(scaling)
         axs[i].set_yscale(scaling)
     plt.gcf().set_size_inches(4 * m_reagents, 4.25)
-    plt.colorbar(im, orientation='vertical', ticks=v, shrink=colorbar_scale)
-    # plt.gcf().tight_layout()
     return axs
 
 
@@ -227,7 +247,7 @@ def plot_feasible_line(K_A_i: np.ndarray,
     2022-12-10 Linus A. Hein.
 
     :param K_A_i: (2) i-th row of K_A matrix with two target molecules.
-    :param affine_bounds_i: (2) i-th row of affine lower/upper bounds.
+    :param readout_value: readout value for which to plot the line.
     :param ax: Axes object to plot on.
     :param t1_limits: left and right limits for plotting. If scaling is "log", actual limits are
         [10^t1_limits[0], 10^t1_limits[1]]

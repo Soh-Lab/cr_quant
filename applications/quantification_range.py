@@ -1,110 +1,103 @@
-import pandas as pd
-import numpy as np
+import os
+
 import matplotlib.pyplot as plt
-import seaborn as sns
-from cr_utils.plotting import save_figure
-import matplotlib.colors as mcolors
-plt.rcParams.update({'font.size': 22, 'font.family': 'serif',
-                     'xtick.labelsize': 15, 'ytick.labelsize': 15})
+import numpy as np
 
-def process_df_range(df):
-    'Update the data file to have mM ranges'
-    # Make sure no negative targets:
-    df['kyn_M_lower'][df.kyn_M_lower < 0] = 1E-13
-    df['kyn_M_upper'][df.kyn_M_upper < 0] = 1E-13
-    df['xa_M_lower'][df.xa_M_lower < 0] = 1E-13
-    df['xa_M_upper'][df.xa_M_upper < 0] = 1E-13
+from applications.data_handling import read_data_files, convert_dataframe_to_numpy, \
+    convert_dataframe_to_avg_std
+from applications.fit_multi_KD import fit_multi_KD, normalize_reads
+from cr_utils.plotting import save_figure, apply_paper_formatting
+from cr_utils.solvers import apply_solver_parallel, lower_upper_bounds_solver
+from cr_utils.utils import get_standard_physical_bounds, get_r_bounds_measured, get_affine_bounds
 
-    df['sample_num'] = ['s' + str(ind) for ind in df.index.to_numpy()]
 
-    # Check if true target conc is within bounds
-    df['in_kyn_bounds'] = (df.kyn_M_lower < df.kyn_M) & (df.kyn_M_upper > df.kyn_M)
-    df['in_xa_bounds'] = (df.xa_M_lower < df.xa_M) & (df.xa_M_upper > df.xa_M)
+def plot_CIs(metadata, ax, concs, bounds1, bounds2,
+             y_axis_target_ind, column_ind, same_target=False):
+    x_axis_target_ind = 1 - y_axis_target_ind
+    y_conc = np.unique(concs[y_axis_target_ind])[column_ind]
+    inds = np.isclose(concs[y_axis_target_ind], y_conc)
+    inds = np.where(inds)[0]
 
-    # Get how wide the interval is
-    df['size_kyn'] = df.kyn_M_upper - df.kyn_M_lower
-    df['size_xa'] = df.xa_M_upper - df.xa_M_lower
+    x = concs[x_axis_target_ind, inds]
 
-    df['size_kyn_log'] = np.log10(df.kyn_M_upper / df.kyn_M_lower)
-    df['size_xa_log'] = np.log10(df.xa_M_upper / df.xa_M_lower)
+    if same_target:
+        y_axis_target_ind = x_axis_target_ind
 
-    df['xa_M_log'] = np.log10(df.xa_M)
+    for color, bounds in [('tab:blue', bounds1), ('tab:orange', bounds2)]:
+        heights = bounds[y_axis_target_ind, 1, inds] - bounds[y_axis_target_ind, 0, inds]
+        bottom = bounds[y_axis_target_ind, 0, inds]
+        ax.bar(np.log10(x), heights, 0.15, bottom, color=color, log=True, alpha=0.5)
 
-    df['kyn_M_log'] = np.log10(df.kyn_M)
-    df['kyn_mM_lower'] = df.kyn_M_lower * 10 ** 3
-    df['kyn_mM_upper'] = df.kyn_M_upper * 10**3
-    df['kyn_mM'] = df.kyn_M * 10**3
-
-    df['xa_mM_lower'] = df.xa_M_lower * 10 ** 3
-    df['xa_mM_upper'] = df.xa_M_upper * 10**3
-    df['xa_mM'] = df.xa_M * 10 ** 3
-    df['size_kyn_mM'] = df.size_kyn * 10 ** 3
-    df['size_xa_mM'] = df.size_kyn * 10 ** 3
-    return df
-
-def plot_bar_CIs(df, x, height, bottom, xlabel, ylabel,plt_log=False,
-                 plt_true=True, color='tab:blue', true_val= 0.001,
-                 hatch=None, flip_axis=False):
-    if not flip_axis:
-        plt.bar(data=df, x=x, height=height, bottom=bottom, width=0.15,
-                align='edge', log=plt_log, color=color, alpha=0.5, hatch=hatch)
-        if plt_true: plt.axhline(y=true_val, color='g', linestyle='-.')
-        plt.ylabel(ylabel)
-        plt.xlabel(xlabel)
-
+    if same_target:
+        ax.step(np.log10(x), x, color='g', linestyle='-.', where='mid')
     else:
-        plt.barh(data=df, y=x, width=height, left=bottom, height=0.15,
-                align='edge', log=plt_log, color=color, alpha=0.5, hatch=hatch)
-        if plt_true: plt.axvline(x=true_val, color='g', linestyle='-.')
-        plt.ylabel(xlabel)
-        plt.xlabel(ylabel)
+        ax.axhline(y=y_conc, color='g', linestyle='-.')
 
-    plt.tight_layout()
+    exponents = np.floor(np.log10(x))
+    bases = np.float_power(10, np.log10(x) - exponents)
+    ax.set_xticks(np.log10(x),
+                  [f'${base:.1f}\\times 10^' + '{' + f'{exponent:.0f}' + '}$' if base != 1
+                   else f'$10^' + '{' + f'{exponent:.0f}' + '}$'
+                   for base, exponent in zip(bases, exponents)])
+    ax.set_xlabel(metadata['targets'][x_axis_target_ind]['display_name'])
+    ax.set_ylabel(metadata['targets'][y_axis_target_ind]['display_name'])
 
-def plot_CIs_two_models(df, df_lang, plt_true=False, plt_log=False, lim=None,
-             x='xa_M_log', height='size_kyn', bottom='kyn_M_lower',
-             xlabel='log(xa)', ylabel='kyn (M)'):
-    plot_bar_CIs(df=df, x=x, height=height, bottom=bottom,
-                 xlabel=xlabel, ylabel=ylabel, color='tab:blue',
-                 hatch=None, plt_true=plt_true, plt_log=plt_log)
-
-    plot_bar_CIs(df=df_lang,  x=x, height=height, bottom=bottom,
-                 xlabel=xlabel, ylabel=ylabel, color='tab:orange',  hatch=None,
-                 plt_true=plt_true, plt_log=plt_log)
-    if lim: plt.ylim(lim)
-    plt.tight_layout()
-    save_figure('range')
 
 if __name__ == '__main__':
+    apply_paper_formatting(22)
     # load data
-    # CR Model
-    df = pd.read_csv('CR_13_sample_bounds.csv')
-    df = process_df_range(df)
-    df_conc_range = df.iloc[2:7]
+    metadata_name = '2023_05_22_CR8.json'
+    data_name = '2023_06_20_colreads_.csv'
 
-    # Langmuir Model
-    df_lang = pd.read_csv('CR_13_sample_bounds_langmuir.csv')
-    df_lang = process_df_range(df_lang)
-    df_conc_range_lang = df_lang.iloc[2:7]
+    root_directory = os.path.join(os.path.dirname(__file__), os.pardir)
+    data_folder = os.path.join(root_directory, 'data')
+    metadata, df = read_data_files(os.path.join(data_folder, metadata_name),
+                                   os.path.join(data_folder, data_name))
 
+    # fit KD values
+    concs, reads = convert_dataframe_to_numpy(df[df.singleplex], metadata)
+
+    K_D, lower_bounds, upper_bounds, \
+        K_D_matrix_std, lower_bounds_std, upper_bounds_std = fit_multi_KD(concs, reads)
+    K_A = 1.0 / K_D
+
+    concs, read_avgs, read_stds = convert_dataframe_to_avg_std(df[~df.singleplex], metadata)
+
+    read_avgs = normalize_reads(read_avgs, lower_bounds, upper_bounds)  # (m_apt, n_samples)
+    read_stds = normalize_reads(read_stds, lower_bounds, upper_bounds,
+                                std=True)  # (m_apt, n_samples)
+
+    # add the bounds zero and infinity
+    phys_bounds = get_standard_physical_bounds(2)  # (n_samples, 2)
+
+    # get the bounds on the reads
+
+    r_bounds = get_r_bounds_measured(read_avgs, read_stds, 2.4841)  # (m_apt, 2, n_samples)
+    affine_bounds = get_affine_bounds(r_bounds)  # (m_apt, 2, n_samples)
+
+    # calculate upper and lower bounds
+    bounds_full_model = apply_solver_parallel(K_A, affine_bounds, phys_bounds,
+                                              lower_upper_bounds_solver,
+                                              n_cores=10)  # (n_targets, x_solution, n_samples)
+
+    off_diag_mat = (np.ones_like(K_A) - np.diag(np.diag(np.ones_like(K_A))))
+    K_A = off_diag_mat * 1e-9 + np.diag(np.diag(K_A))  # get main diagonal
+    # diag_mat = np.ones_like(K_A) - off_diag_mat
+    # K_A = K_A - np.diag(np.diag(K_A)) + diag_mat * 1e-9  # get off-diagonal
+
+    bounds_naive_model = apply_solver_parallel(K_A, affine_bounds, phys_bounds,
+                                               lower_upper_bounds_solver,
+                                               n_cores=10)  # (n_targets, x_solution, n_samples)
     # Plot kyn quant for concentration range of increasing xa
-    plt.figure(figsize=[6, 10])
-    plot_CIs_two_models(df_conc_range, df_conc_range_lang, plt_true=True)
-    plt.show()
+    fig, ax = plt.subplots(1, 1)
+    plot_CIs(metadata, ax, concs, bounds_full_model, bounds_naive_model,
+             0, 1, same_target=False)
+    save_figure(fig, os.path.join(root_directory, 'output', 'kyn_vs_xa.svg'))
+    plt.close(fig)
 
     # Plot xa quant for concentration range of increasing xa
-    plt.figure()
-    plt.plot(df_conc_range['xa_M_log'], df_conc_range['xa_M'], color='g', linestyle='-.')
-    plot_CIs_two_models(df_conc_range, df_conc_range_lang, plt_true=False, plt_log=False,
-             x='xa_M_log', height='size_xa', bottom='xa_M_lower',
-             xlabel='log(xa)', ylabel='xa (M)', lim=[10 ** -6, 10 ** -3.5]
-             )
-    save_figure('xa_quant_kyn_1mM')
-    plt.show()
-
-    # Plot extreme indices
-    extreme_indices = [0, 1, 7, 8, 9, 10]
-    cur_df = df.iloc[extreme_indices]
-    # plt.scatter(x=cur_df.kyn_M, y=cur_df.xa_M_log, color='red', marker='x')
-    plot_CIs_two_models(cur_df, df_lang.iloc[extreme_indices], plt_log=True, lim=[10 ** -5, 10 ** -2])
-    plt.show()
+    fig, ax = plt.subplots(1, 1)
+    plot_CIs(metadata, ax, concs, bounds_full_model, bounds_naive_model,
+             0, 1, same_target=True)
+    save_figure(fig, os.path.join(root_directory, 'output', 'xa_vs_xa.svg'))
+    plt.close(fig)
