@@ -32,5 +32,5 @@ if __name__ == '__main__':
     plt.xlabel('$T_1\cdot K_A^{1}$')
     plt.ylabel('Normalized Signal')
     plt.legend()
-    save_figure(plt.gcf(), '/Users/linus/workspace/cr_quant/output/fig1a.svg')
+    save_figure(plt.gcf(), '/output/fig1a.svg')
     plt.show()
