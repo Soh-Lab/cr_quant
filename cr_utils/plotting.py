@@ -13,9 +13,23 @@ def apply_paper_formatting(font_size):
 
     :param font_size: font size to be used in all plots.
     """
+    # sans-serif fonts
+    #plt.rcParams.update({'font.size': font_size, 'font.family': 'Avenir',
+                         # 'mathtext.fontset': 'stixsans',
+    # serif fonts
     plt.rcParams.update({'font.size': font_size, 'font.family': 'serif',
                          'mathtext.fontset': 'dejavuserif',
                          'xtick.labelsize': 15, 'ytick.labelsize': 15})
+    SMALL_SIZE = 20
+    MEDIUM_SIZE = 25
+    BIGGER_SIZE = 30
+    plt.rc('font', size=SMALL_SIZE)  # controls default text sizes
+    plt.rc('axes', titlesize=BIGGER_SIZE)  # fontsize of the axes title
+    plt.rc('axes', labelsize=MEDIUM_SIZE)  # fontsize of the x and y labels
+    plt.rc('xtick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
+    plt.rc('ytick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
+    plt.rc('legend', fontsize=SMALL_SIZE)  # legend fontsize
+    plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 
 def save_figure(fig, path):
@@ -25,8 +39,12 @@ def save_figure(fig, path):
     :param fig: Figure to be saved.
     :param path: Path to save the figure at.
     """
+    directory = os.path.dirname(path)
+    # Check if the directory exists, if not create it
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     filetype = os.path.splitext(path)[1].replace('.', '')
-    fig.savefig(path, format=filetype, dpi=300, bbox_inches='tight')
+    fig.savefig(path, format=filetype, dpi=300)
 
 
 def plot_estimate_performance(estimate: np.ndarray,
@@ -232,7 +250,7 @@ def plot_feasible_region(K_A_i: np.ndarray,
         y_btm = (affine_bounds_i[0] - K_A_i[0] * x[::-1]) / K_A_i[1]
 
     ax.fill(np.concatenate([x, x[::-1]]), np.concatenate([y_top, y_btm]),
-            alpha=0.5, color=color)
+            alpha=0.8, color=color)
 
 
 def plot_feasible_line(K_A_i: np.ndarray,
@@ -263,7 +281,7 @@ def plot_feasible_line(K_A_i: np.ndarray,
 
     y = (readout_value - K_A_i[0] * x) / K_A_i[1]
 
-    ax.plot(x, y, color=color)
+    ax.plot(x, y, color=color, linewidth=3)
 
 
 def plot_ellipse(center, B, ax):

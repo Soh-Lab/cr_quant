@@ -1,5 +1,5 @@
 """
-
+Generate data for tables S4, S5.
 
 2022-12-10 Linus A. Hein
 """
@@ -19,7 +19,11 @@ from cr_utils.utils import get_affine_bounds, \
 if __name__ == '__main__':
     # load data
     metadata_name = '2023_05_22_CR8.json'
-    data_name = '2023_06_20_colreads_.csv'
+    data_name = '2023_06_20_colreads_filtered.csv'
+
+    # whether to assume that every affinity reagent is perfectly specific (naive approach)
+    # set to true for data like in Fig S4.
+    NAIVE = False
 
     root_directory = os.path.join(os.path.dirname(__file__), os.pardir)
     data_folder = os.path.join(root_directory, 'data')
@@ -32,6 +36,10 @@ if __name__ == '__main__':
     K_D, lower_bounds, upper_bounds, \
         K_D_matrix_std, lower_bounds_std, upper_bounds_std = fit_multi_KD(concs, reads)
     K_A = 1.0 / K_D
+
+    if NAIVE:
+        K_A = np.diag(np.diag(K_A))
+        K_A[K_A == 0] = 1e-9
 
     # off_diag_mat = (np.ones_like(K_A) - np.diag(np.diag(np.ones_like(K_A))))
     # diag_mat = np.ones_like(K_A) - off_diag_mat

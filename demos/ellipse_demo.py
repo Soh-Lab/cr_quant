@@ -27,40 +27,29 @@ if __name__ == '__main__':
         [0.01, 1.0]
     ])
 
-    true_conc = np.array([
-        [1.49e-2],
-        [5.90e-3]
-    ])
-
-    # K_D = np.array([
-    #     # [1.0, 0.25],
-    #     [100, 1.0],
-    #     [1.0, 100.0]
-    # ])
-    # true_conc = np.array([[1e3], [1e-4]])
+    true_conc = np.array([[1.49e-2], [5.90e-3]])
 
     K_A = 1.0 / K_D
-
-
-    ### plotting background
-
     m_reagents = K_D.shape[0]
+
     # create a 2D-log-meshgrid of target concentrations
     A, B = np.logspace(log_from, log_to, log_steps), np.logspace(log_from, log_to, log_steps)
     AA, BB = np.meshgrid(A, B)
-    # generate the affine bounds needed to run the solver
     target_concs = np.stack([AA, BB], axis=0)
     readouts = get_readouts(K_A, target_concs)
 
+    # preparing plotting
     fig = plt.figure(constrained_layout=True)
     gs = GridSpec(2, m_reagents, figure=fig)
-
     combined_ax = fig.add_subplot(gs[1, m_reagents // 2])
+    combined_ax.set_aspect('equal')
     axs = [fig.add_subplot(gs[0, i], sharex=combined_ax, sharey=combined_ax) for i in
            range(m_reagents)]
 
+    # plot background
     plot_2d_fields(target_concs, readouts, 'Affinity Reagent', axs=axs)
 
+    # generate the affine bounds needed to run the solver
     readouts = get_readouts(K_A, true_conc)
     r_bounds = get_r_bounds(readouts, 0.05)
     affine_bounds = get_affine_bounds(r_bounds)
@@ -76,14 +65,11 @@ if __name__ == '__main__':
                              combined_ax,
                              (log_from, log_to),
                              color=colors[i])
+        axs[i].set_aspect('equal')
     combined_ax.grid()
-    fig.set_size_inches(4 * m_reagents, 9)
+    fig.set_size_inches(3 * m_reagents, 6)
 
-
-    ### plotting ellipse
-
-
-
+    # plotting ellipse on the combined axis
     phys_bounds = get_standard_physical_bounds(2)
 
     r = get_readouts(K_A, true_conc)
@@ -92,7 +78,5 @@ if __name__ == '__main__':
 
     results = apply_solver_parallel(K_A, affine_bounds, phys_bounds, ellipsoid_solver,
                                     n_cores=10)
-    print(results)
     plot_ellipse(results[:, 0, 0], results[:, 1:, 0], combined_ax)
     plt.show()
-    # plot_lower_upper_performance(bounds, target_concs)

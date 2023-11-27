@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from cr_utils.plotting import apply_paper_formatting
+from cr_utils.plotting import apply_paper_formatting, save_figure
 
 
 def plot_single_isotherm():
@@ -28,7 +28,7 @@ def plot_single_isotherm_range(readout_center, readout_min, readout_max):
 
     x = np.array([1e-4, T_max, T_max, T_min, T_min, 1e-4])
     y = np.array([readout_max, readout_max, -1, -1, readout_min, readout_min])
-    plt.fill(x, y, alpha=0.5)
+    plt.fill(x, y, alpha=0.5, color='r')
 
 
 def fix_labeling():
@@ -44,9 +44,12 @@ def fix_labeling():
 
 if __name__ == '__main__':
     apply_paper_formatting(18)
-    readout_value = 0.5
+    readout_value = 0.93
     delta = 0.05
 
-    plot_single_isotherm_range(0.5, readout_value - delta, readout_value + delta)
+    plot_single_isotherm_range(readout_value, readout_value - delta, readout_value + delta)
     fix_labeling()
+    plt.gcf().set_size_inches(6.9, 5)
+    plt.gcf().set_layout_engine('compressed')
+    save_figure(plt.gcf(), '../output/1D_interval.svg')
     plt.show()

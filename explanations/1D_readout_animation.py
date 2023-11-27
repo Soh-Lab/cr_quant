@@ -53,6 +53,6 @@ ani = animation.FuncAnimation(
     fig, animate, interval=20, blit=True, save_count=49, frames=repeats)
 
 writer = animation.FFMpegWriter(fps=50, metadata=dict(artist='Me'), bitrate=1800)
-ani.save("/Users/linus/workspace/cr_quant/output/movie01.mp4", writer=writer)
+ani.save("../output/movie01.mp4", writer=writer)
 
 plt.show()

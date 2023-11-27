@@ -79,6 +79,6 @@ ani = animation.FuncAnimation(
     fig, animate, interval=20, blit=False, save_count=49, frames=repeats)
 
 writer = animation.FFMpegWriter(fps=50, metadata=dict(artist='Me'), bitrate=1800)
-ani.save("/Users/linus/workspace/cr_quant/output/2dreadout_intervals.mp4", writer=writer)
+ani.save("../output/2dreadout_intervals.mp4", writer=writer)
 # plt.savefig('/Users/linus/workspace/xplex/LGM/figs/2D_readout_area.png')
 # plt.show()

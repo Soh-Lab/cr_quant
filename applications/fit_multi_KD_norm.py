@@ -1,5 +1,5 @@
 """
-
+Generate binding curve plot like for Fig. 2a, and data for Tables S2 and S3.
 
 2023-05-30 Linus A. Hein
 """
@@ -118,7 +118,9 @@ def fit_multi_KD(concentrations, reads, uncertainty=False):
         reagent_reads = reads[reagent_ind, :]
         fit_result = curve_fit(func_4PLb1_ln, log_concs, reagent_reads,
                                p0=(np.min(reagent_reads) / 2, np.max(reagent_reads) * 2) + (
-                                   -4,) * n, check_finite=False)
+                                   -4,) * n, check_finite=False,
+                               bounds=(
+                                   [0] * m + [np.log(1e-18)] * n, [1e6] * m + [np.log(1e6)] * n))
         popt = fit_result[0]
         pcov = fit_result[1]
         perr = np.sqrt(np.diag(pcov))  # calculate standard deviations as per documentation
@@ -139,7 +141,8 @@ if __name__ == '__main__':
     apply_paper_formatting(18)
     # load data
     metadata_name = '2023_05_22_CR8.json'
-    data_name = '2023_06_20_colreads_.csv'
+    data_name = '2023_06_20_colreads_filtered.csv'
+    # data_name = 'Yoshikawa_SI_kyn_xa.csv'
 
     root_directory = os.path.join(os.path.dirname(__file__), os.pardir)
     data_folder = os.path.join(root_directory, 'data')
@@ -160,9 +163,10 @@ if __name__ == '__main__':
 
     # plot the fitted curves
     fig, axs = plt.subplots(nrows=1, ncols=1,
-                            sharey='row', sharex='col')
+                            sharey='row', sharex='col',
+                            figsize=(8, 6))
     ax = axs
-    colors = ['orange', 'g']
+    colors = ['r', 'orange']
     lines = ['-', '--']
     markers = ['+', 'x']
     for apt_ind, apt_name in enumerate(aptamer_names):
@@ -190,19 +194,20 @@ if __name__ == '__main__':
                                            np.log(K_D_matrix[apt_ind, target_ind])),
                     label=f'{apt_name} against {target_name}', color=colors[apt_ind],
                     linestyle=lines[target_ind])
-    ax.set_xlabel('Target Concentration [M]')
+    ax.set_xlabel('Concentration (M)')
     ax.set_xscale('log')
-    ax.set_ylabel('Normalized Reads')
+    ax.set_ylabel('Normalized Signal')
     plt.yticks([0, 0.5, 1.0])
     x_ticks = np.logspace(-8, -2, 7)
-    x_tick_labels = ['$10^{' + f'{np.log10(x_tick):.0f}'+'}$' for x_tick in x_ticks]
-    x_tick_labels = [x_tick_label if i % 2 == 0 else '' for i, x_tick_label in enumerate(x_tick_labels)]
+    x_tick_labels = ['$10^{' + f'{np.log10(x_tick):.0f}' + '}$' for x_tick in x_ticks]
+    x_tick_labels = [x_tick_label if i % 2 == 0 else '' for i, x_tick_label in
+                     enumerate(x_tick_labels)]
     plt.xticks(x_ticks, x_tick_labels)
 
     ax.grid()
     plt.xlim([0.3e-8, 3e-2])
     plt.legend()
 
-    fig_path = os.path.join(root_directory, 'output','binding_curve.svg')
+    fig_path = os.path.join(root_directory, 'output', 'binding_curve.svg')
     save_figure(fig, fig_path)
     plt.show()

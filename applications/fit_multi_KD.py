@@ -136,7 +136,7 @@ def fit_multi_KD(concentrations, reads, uncertainty=False):
 if __name__ == '__main__':
     # load data
     metadata_name = '2023_05_22_CR8.json'
-    data_name = '2023_06_20_colreads_.csv'
+    data_name = '2023_06_20_colreads_filtered.csv'
 
     root_directory = os.path.join(os.path.dirname(__file__), os.pardir)
     data_folder = os.path.join(root_directory, 'data')
