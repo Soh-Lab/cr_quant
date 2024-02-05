@@ -1,5 +1,8 @@
 """
-
+Demo to show how to evaluate the performance of our quantification results.
+Left column displays the log-error of taking the average of the lower and upper bound vs the true
+concentration: log((upper bound + lower bound) / 2) - log(true concentration).
+Right column shows how confident we are in our estimate: log(upper bound) - log(lower bound).
 
 2022-12-10 Linus A. Hein
 """

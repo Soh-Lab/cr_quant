@@ -1,5 +1,7 @@
 """
-
+Code to show where we can expect to have upper/lower bounds on either target concentration.
+No lower bound is shown in blue, no upper bound is shown in red, both lower and upper bounds are
+shown in green.
 
 2022-12-10 Linus A. Hein
 """
@@ -37,7 +39,7 @@ if __name__ == '__main__':
     # generate the affine bounds needed to run the solver
     target_concs = np.stack([AA, BB], axis=0)
     readouts = get_readouts(K_A, target_concs)
-    r_bounds = get_r_bounds(readouts, 0.05)
+    r_bounds = get_r_bounds(readouts, 0.05)  # use fixed 5% noise
     affine_bounds = get_affine_bounds(r_bounds)
 
     bounds = apply_solver_parallel(K_A, affine_bounds, phys_bounds, boundedness_solver,
@@ -51,6 +53,6 @@ if __name__ == '__main__':
 
     concs, read_avgs, read_stds = convert_dataframe_to_avg_std(df[~df.singleplex], metadata)
     for ax in axs:
-        ax.scatter(df.kyn_M, df.xa_M)
+        ax.scatter(df.kyn_M, df.xa_M)  # plot target concentrations used in real experiments.
 
     plt.show()

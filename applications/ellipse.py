@@ -1,5 +1,6 @@
 """
-
+Demonstrate how to write a solver that inscribes an ellipsoid inside the feasible region,
+which could give some intuition for the covariance of the feasible set.
 
 2023-06-02 Linus A. Hein
 """
@@ -96,7 +97,7 @@ if __name__ == '__main__':
         phys_bounds = get_standard_physical_bounds(2)
         results = apply_solver(K_A, affine_bounds, phys_bounds, ellipsoid_solver)
 
-        print(f'{true_conc[0, 0]}, {true_conc[1, 0]}, {results[0, 0, 0]}, {results[1, 0, 0]}')
+        print(f'True concentrations: {true_conc[0, 0]:.2e}, {true_conc[1, 0]:.2e}, Estimated concentrations: {results[0, 0, 0]:.2e}, {results[1, 0, 0]:.2e}')
         plot_ellipse(results[:, 0, 0], results[:, 1:, 0], combined_ax)
         # mark centroid using blue o, and true concentration using red x
         combined_ax.scatter(results[0, 0, 0], results[1, 0, 0], color='b', marker='o')

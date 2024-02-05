@@ -1,5 +1,5 @@
 """
-
+Show how a feasible region solver works on real data.
 
 2023-05-30 Linus A. Hein
 """

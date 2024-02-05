@@ -1,3 +1,7 @@
+"""
+Generates an figure to give intuition for how signal resolution works for a single-target binder.
+"""
+
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -13,7 +17,6 @@ def plot_single_isotherm():
 def plot_single_isotherm_readout(readout_center):
     plot_single_isotherm()
 
-    # readout_center = 0.25
     T_center = readout_center / (1 - readout_center)
 
     y = np.array([readout_center, readout_center, -1])

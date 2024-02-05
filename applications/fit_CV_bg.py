@@ -1,5 +1,5 @@
 """
-
+Fit the values of CV and bg parameters that estimate the amount of noise present in a sample.
 
 2023-10-16 Linus A. Hein
 """

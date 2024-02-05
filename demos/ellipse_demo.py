@@ -1,5 +1,6 @@
 """
-
+Demo to demonstrate how to write a solver that inscribes an ellipsoid inside the feasible region,
+which could give some intuition for the covariance of the feasible set.
 
 2022-12-10 Linus A. Hein
 """

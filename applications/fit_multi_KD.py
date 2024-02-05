@@ -1,5 +1,5 @@
 """
-
+Fit all KDs simultaneously and plot in separate plots.
 
 2023-05-30 Linus A. Hein
 """

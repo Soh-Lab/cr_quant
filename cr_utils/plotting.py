@@ -285,6 +285,14 @@ def plot_feasible_line(K_A_i: np.ndarray,
 
 
 def plot_ellipse(center, B, ax):
+    """
+    Plot an ellipse onto an axis object.
+
+    :param center: (2) Coordinates of the center of the ellipse.
+    :param B: (2, 2) Matrix describing the ellipsoid to be plotted. Edge of the ellipse is given by
+        B @ u where u is an element of the set of all unit vectors.
+    :param ax: Axes object to plot on.
+    """
     n_points = 100
     rad_values = np.linspace(0, 2 * np.pi, n_points)
     u = np.zeros((2, n_points))

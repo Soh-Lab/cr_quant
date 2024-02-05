@@ -1,5 +1,5 @@
 """
-
+Demo to show how a feasible region solver works on toy data.
 
 2022-12-10 Linus A. Hein
 """
@@ -19,7 +19,7 @@ if __name__ == '__main__':
     # set the resolution on each axis of the log-scale (reduce this number to get faster runtime)
     log_steps = 300
     # whether to plot lines or regions
-    LINE_MODE = True
+    LINE_MODE = False
 
     K_D = np.array([  # example: affinities from the paper, Fig. 1
         [10e-3, 0.1e-3],  # affinity reagent 1
