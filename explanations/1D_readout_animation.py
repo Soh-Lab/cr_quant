@@ -66,4 +66,4 @@ ani = animation.FuncAnimation(
     fig, animate, interval=20, blit=True, save_count=49, frames=repeats)
 
 writer = animation.FFMpegWriter(fps=50, metadata=dict(artist='Me'), bitrate=1800)
-ani.save("../output/1D_readout_animation.mp4", writer=writer)
+ani.save("../output/1d_readout_animation.mp4", writer=writer)
